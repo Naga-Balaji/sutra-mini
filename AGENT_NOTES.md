@@ -15,6 +15,10 @@
   `apodex/apodex-1.1-mini:free`; the code default is `anthropic/claude-haiku-5.5`.
   On real Neon data it answered 4/4 test questions correctly, and it refused
   "Delete all vouchers" because it has no write tool.
+- Recording: Claude wrote a script that runs the demo live against Neon in a
+  split terminal (API, mock and worker logs + commands). The terminal was
+  recorded with asciinema, and the narration uses the macOS text-to-speech
+  voice "Aman".
 
 ## How I worked with it
 
@@ -45,7 +49,24 @@
 
 ## One thing I caught
 
-- _TODO: write this yourself._
+**The tests were writing into the same database as the app, and it showed up in
+the answers.**
+
+When I tested the `/ask` stretch feature against my Neon data, the answer for
+"How much of ANK-001 is still with Meena?" said **160 issued**. The seed data
+only issues **100** pieces of ANK-001 to Meena (`GET /issues/2` shows 100).
+
+The extra 60 came from the tests. Each test run creates its own issues (10 and
+50 pieces) for the *first* seeded SKU and job-worker, in the same database that
+`DATABASE_URL` points to. The agent wrote tests that were correct for proving
+the guarantees, but it didn't consider that every `go test` run would
+quietly change the demo data. Anyone running the tests before a demo would see
+numbers that don't match the seed.
+
+The guarantees themselves weren't affected. The fix is to give tests their
+own database: the code already reads `TEST_DATABASE_URL`, so it only needs to
+point at a separate Neon branch. I haven't switched yet, so my demo database
+still contains the test-created issues.
 
 ## Decisions worth knowing for the live change
 
